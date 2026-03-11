@@ -1,0 +1,7 @@
+*
+!.gitignore
+!init.el
+!early-init.el
+!README.md
+!LICENSE
+!CLAUDE.md
