@@ -319,11 +319,15 @@
 (use-package consult
   :ensure t
   :bind (("C-x b"   . consult-buffer)
+         ("C-x r b" . consult-bookmark)
          ("M-y"     . consult-yank-pop)
          ("M-g g"   . consult-goto-line)
          ("M-g M-g" . consult-goto-line)
          ("M-g i"   . consult-imenu)
          ("M-g o"   . consult-outline)
+         ("M-g m"   . consult-mark)
+         ("M-g M"   . consult-global-mark)
+         ("M-g r"   . consult-register)
          ("M-s r"   . consult-ripgrep)
          ("M-s l"   . consult-line)
          ("M-s L"   . consult-line-multi)
@@ -799,6 +803,18 @@
   :ensure t
   :bind ("C-=" . er/expand-region))
 
+(use-package goto-chg
+  :ensure (:host github :repo "emacs-evil/goto-chg")
+  :bind (("M-g ;" . goto-last-change)
+         ("M-g :" . goto-last-change-reverse))
+  :config
+  (defvar-keymap goto-chg-repeat-map
+    :repeat t
+    ";" #'goto-last-change
+    ":" #'goto-last-change-reverse)
+  (put 'goto-last-change 'repeat-map 'goto-chg-repeat-map)
+  (put 'goto-last-change-reverse 'repeat-map 'goto-chg-repeat-map))
+
 ;;;; ============================================================
 ;;;; Misc settings and utilities
 ;;;; ============================================================
@@ -814,9 +830,18 @@
   :config
   (setq server-socket-dir (expand-file-name "server" user-emacs-directory)))
 
+(repeat-mode 1)
+
 (use-package winner
   :ensure nil
-  :init (winner-mode 1))
+  :init (winner-mode 1)
+  :config
+  (defvar-keymap winner-repeat-map
+    :repeat t
+    "<left>"  #'winner-undo
+    "<right>" #'winner-redo)
+  (put 'winner-undo 'repeat-map 'winner-repeat-map)
+  (put 'winner-redo 'repeat-map 'winner-repeat-map))
 
 (use-package delsel
   :ensure nil
