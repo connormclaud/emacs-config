@@ -162,7 +162,9 @@
      (list (completing-read "Mode (leave blank for default): "
                             (let (modes)
                               (mapatoms (lambda (sym)
-                                          (when (string-suffix-p "-mode" (symbol-name sym))
+                                          (when (and (string-suffix-p "-mode" (symbol-name sym))
+                                                     (commandp sym)
+                                                     (not (memq sym minor-mode-list)))
                                             (push (symbol-name sym) modes))))
                               (sort modes 'string<))
                             nil t)))
