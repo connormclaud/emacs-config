@@ -167,7 +167,7 @@
                                                      (not (memq sym minor-mode-list)))
                                             (push (symbol-name sym) modes))))
                               (sort modes 'string<))
-                            nil t)))
+                            nil t nil nil (symbol-name major-mode))))
     (let ((buffer (generate-new-buffer (if mode
                                            (format "*scratch-%s*" mode)
                                          "*scratch*"))))
