@@ -146,36 +146,18 @@
 
 (use-package emacs
   :ensure nil
-  :bind (("C-c b" . my/create-scratch-buffer)
-         ("<f5>" . revert-buffer))
+  :bind (("<f5>" . revert-buffer))
   :hook (emacs-startup . (lambda () (select-frame-set-input-focus (selected-frame))))
   :custom
   (default-input-method "russian-computer")
   (font-use-system-font t)
   (scroll-conservatively 5)
   :config
-  (pixel-scroll-precision-mode 1)
-  (defun my/create-scratch-buffer (&optional mode)
-    "Create a new scratch buffer.
-    MODE allows specifying the mode the buffer should start in."
-    (interactive
-     (list (completing-read "Mode (leave blank for default): "
-                            (let (modes)
-                              (mapatoms (lambda (sym)
-                                          (when (and (string-suffix-p "-mode" (symbol-name sym))
-                                                     (commandp sym)
-                                                     (not (memq sym minor-mode-list)))
-                                            (push (symbol-name sym) modes))))
-                              (sort modes 'string<))
-                            nil t nil nil (symbol-name major-mode))))
-    (let ((buffer (generate-new-buffer (if mode
-                                           (format "*scratch-%s*" mode)
-                                         "*scratch*"))))
-      (switch-to-buffer buffer)
-      (when mode
-        (funcall (intern mode)))
-      (setq default-directory "/tmp/")
-      (message "Created a scratch buffer in %s mode." (or mode "default")))))
+  (pixel-scroll-precision-mode 1))
+
+(use-package multi-scratch
+  :ensure (multi-scratch :host github :repo "connormclaud/emacs-multi-scratch")
+  :bind ("C-c b" . multi-scratch-new))
 
 (use-package exec-path-from-shell
   :ensure t
