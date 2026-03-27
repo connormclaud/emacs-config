@@ -376,7 +376,36 @@
   :ensure nil
   :after org
   :custom
-  (org-habit-graph-column 50))
+  (org-habit-graph-column 50)
+  :config
+  (defun my/toggle-org-habit-today-only ()
+    "Toggle whether agenda shows future habit repeats."
+    (interactive)
+    (setq org-habit-show-habits-only-for-today
+          (not org-habit-show-habits-only-for-today))
+    (org-agenda-redo)
+    (message "Showing future habits is now %s"
+             (if org-habit-show-habits-only-for-today "disabled" "enabled"))))
+
+(use-package org-agenda
+  :ensure nil
+  :after org-habit
+  :config
+  (defun my/toggle-org-agenda-hide-done ()
+    "Toggle hiding done items in agenda views."
+    (interactive)
+    (setq org-agenda-skip-scheduled-if-done
+          (not org-agenda-skip-scheduled-if-done)
+          org-agenda-skip-deadline-if-done
+          org-agenda-skip-scheduled-if-done
+          org-agenda-skip-timestamp-if-done
+          org-agenda-skip-scheduled-if-done)
+    (org-agenda-redo)
+    (message "Hiding done agenda items is now %s"
+             (if org-agenda-skip-scheduled-if-done "enabled" "disabled")))
+  :bind (:map org-agenda-mode-map
+              ("C-c h" . my/toggle-org-habit-today-only)
+              ("C-c t" . my/toggle-org-agenda-hide-done)))
 
 (use-package anki-editor
   :ensure (:host github :repo "anki-editor/anki-editor")
@@ -904,19 +933,6 @@
          ("C-h k" . helpful-key)
          ("C-h x" . helpful-command)))
 
-(defun my/toggle-org-habit-today-only ()
-  "Toggle the org-habit-show-habits-only-for-today and org-agenda-show-future-repeats variables."
-  (interactive)
-  (setq org-habit-show-habits-only-for-today (not org-habit-show-habits-only-for-today))
-  (org-agenda-redo)
-  (message "Showing future habits is now %s"
-           (if org-habit-show-habits-only-for-today "disabled" "enabled"))
-  )
-
-
-(with-eval-after-load 'org-agenda
-  (define-key org-agenda-mode-map (kbd "C-c h") 'my/toggle-org-habit-today-only))
-
 (defun my/org-agenda-wip-count (states)
   (let ((counter 0))
     (org-map-entries
@@ -959,6 +975,8 @@
 ;;;; ============================================================
 ;;;; Startup
 ;;;; ============================================================
+
+(defvar org-agenda-window-setup)
 
 (defun my/display-org-agenda-on-startup ()
   (let ((org-agenda-window-setup 'only-window))
@@ -1015,4 +1033,3 @@
   (global-ligature-mode t))
 
 (set-face-attribute 'default nil :family "Iosevka" :height 150)
-
