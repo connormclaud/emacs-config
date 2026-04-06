@@ -44,6 +44,8 @@
 (elpaca elpaca-use-package
   (elpaca-use-package-mode))
 
+(cl-pushnew 'org elpaca-ignored-dependencies)
+
 (use-package org
   ;; :ensure (:wait t)
   :ensure t
@@ -133,7 +135,6 @@
   (setq org-agenda-show-future-repeats nil)
   (setq org-list-allow-alphabetical t)
   )
-(cl-pushnew 'org elpaca-ignored-dependencies)
 
 ;;; Redirect Custom writes to separate file
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
