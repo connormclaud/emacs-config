@@ -559,7 +559,7 @@
       :target (file+head "%<%Y-%m-%d>.org"
                          ":PROPERTIES:\n:LINK: [[id:41ace651-2c8b-4fa3-b92c-b8e2f0297630][dairy parent]]\n:END:\n#+title: Daily: %<%A, %Y-%m-%d>\n"))
      ("j" "journal" plain
-      "* Morning Gratitude\n  - I am grateful for...\n    1. %?\n    2. \n    3. \n* Daily Affirmation\n  - Something positive about myself...\n    \n* Evening Reflection\n  - 3 Amazing things today...\n    1. \n    2. \n    3. \n  - How could I have made today better?\n    1."
+      "* Morning Gratitude\n  - I am grateful for...\n    1. %?\n    2. \n    3. \n  - [ ] 3-min Keep sweep (fleeting notes < 24h)\n* Evening Reflection\n  - One thing I noticed or learned today:\n    - "
       :target (file+head "%<%Y-%m-%d>-journal.org"
                          ":PROPERTIES:\n:LINK: [[id:ec6f965e-fc1d-474a-b867-e2c959bf0b33][journal parent]]\n:END:\n#+title: Journal: %<%A, %B %d, %Y>\n"))
 
