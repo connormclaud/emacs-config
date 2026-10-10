@@ -134,7 +134,117 @@
         org-outline-path-complete-in-steps nil)
   (setq org-agenda-show-future-repeats nil)
   (setq org-list-allow-alphabetical t)
+
+  (defun my/org-archive-logbook-at-point (days arch-file)
+    "Archive :LOGBOOK: entries older than DAYS for heading at point to ARCH-FILE.
+Return cons cell (ARCHIVED-COUNT . KEPT-COUNT)."
+    (let* ((cutoff (format-time-string "%Y-%m-%d"
+                                       (time-subtract (current-time) (days-to-time days))))
+           (heading (org-get-heading t t t t))
+           (src-file (or (buffer-file-name) (buffer-name)))
+           entries-to-keep
+           entries-to-archive)
+      (save-excursion
+        (org-back-to-heading t)
+        (let ((subtree-end (save-excursion (outline-next-heading) (point))))
+          (when (re-search-forward "^[ \t]*:LOGBOOK:[ \t]*$" subtree-end t)
+            (let ((lb-start (line-beginning-position 2))
+                  (lb-end (and (re-search-forward "^[ \t]*:END:[ \t]*$" subtree-end t)
+                               (line-beginning-position))))
+              (when lb-end
+                (goto-char lb-start)
+                (while (< (point) lb-end)
+                  (if (looking-at "^[ \t]*- ")
+                      (let* ((start (point))
+                             (entry-end (save-excursion
+                                          (forward-line 1)
+                                          (while (and (< (point) lb-end)
+                                                      (not (looking-at "^[ \t]*- ")))
+                                            (forward-line 1))
+                                          (point)))
+                             (entry-str (buffer-substring-no-properties start entry-end)))
+                        (if (and (string-match "\\[\\([0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}\\)" entry-str)
+                                 (string< (match-string 1 entry-str) cutoff))
+                            (push entry-str entries-to-archive)
+                          (push entry-str entries-to-keep))
+                        (goto-char entry-end))
+                    (forward-line 1)))
+                (when entries-to-archive
+                  ;; 1. Append to archive file
+                  (with-current-buffer (find-file-noselect arch-file)
+                    (save-excursion
+                      (goto-char (point-min))
+                      (let ((target-re (concat "^\\*+ +" (regexp-quote heading) "\\(?:[ \t]+:[^ \t\n]+:[ \t]*\\|[ \t]*\\)$")))
+                        (if (re-search-forward target-re nil t)
+                            (let ((arch-sub-end (save-excursion (outline-next-heading) (point))))
+                              (if (re-search-forward "^[ \t]*:LOGBOOK:[ \t]*$" arch-sub-end t)
+                                  (forward-line 1)
+                                (org-end-of-meta-data t)
+                                (insert "  :LOGBOOK:\n  :END:\n")
+                                (forward-line -1)))
+                          (goto-char (point-max))
+                          (unless (bolp) (insert "\n"))
+                          (insert (format "* %s\n  :PROPERTIES:\n  :ARCHIVE_TIME: %s\n  :ARCHIVE_FILE: %s\n  :END:\n  :LOGBOOK:\n  :END:\n"
+                                          heading
+                                          (format-time-string "[%Y-%m-%d %a %H:%M]")
+                                          src-file))
+                          (forward-line -1)))
+                      (dolist (e (reverse entries-to-archive))
+                        (insert e))))
+                  ;; 2. Update source drawer
+                  (save-excursion
+                    (org-back-to-heading t)
+                    (let ((sub-end (save-excursion (outline-next-heading) (point))))
+                      (re-search-forward "^[ \t]*:LOGBOOK:[ \t]*$" sub-end t)
+                      (let ((start (line-beginning-position 2))
+                            (end (and (re-search-forward "^[ \t]*:END:[ \t]*$" sub-end t)
+                                      (line-beginning-position))))
+                        (delete-region start end)
+                        (goto-char start)
+                        (dolist (e (reverse entries-to-keep))
+                          (insert e)))))))))))
+      (cons (length entries-to-archive) (length entries-to-keep))))
+
+  (defun my/org-archive-logbook (&optional all-headings days)
+    "Archive :LOGBOOK: entries older than DAYS (default 30).
+With prefix argument ALL-HEADINGS (\\[universal-argument]), process all
+headings in the buffer bottom-to-top. Otherwise, process heading at point."
+    (interactive "P")
+    (when (string-match-p "_archive\\(?:\\..*\\)?$" (or (buffer-file-name) (buffer-name)))
+      (user-error "Current buffer is already an archive file!"))
+    (require 'org-archive)
+    (let* ((days (if (and (numberp all-headings) (not days))
+                     all-headings
+                   (or days 30)))
+           (process-all (and all-headings (not (numberp all-headings))))
+           (src-file (or (buffer-file-name) (buffer-name)))
+           (arch-file (if (fboundp 'org-archive--compute-location)
+                          (car (org-archive--compute-location (or (org-entry-get nil "ARCHIVE" t) org-archive-location)))
+                        (concat src-file "_archive")))
+           (total-archived 0)
+           (total-kept 0))
+      (if process-all
+          (let (markers)
+            (org-map-entries (lambda () (push (point-marker) markers)))
+            ;; `markers` was built with push as visited from top-to-bottom,
+            ;; so it is in REVERSE order (bottom-to-top). Deletions at the
+            ;; bottom do not shift buffer positions of earlier headings.
+            (dolist (m markers)
+              (goto-char m)
+              (let ((res (my/org-archive-logbook-at-point days arch-file)))
+                (setq total-archived (+ total-archived (car res)))
+                (setq total-kept (+ total-kept (cdr res))))
+              (set-marker m nil)))
+        (let ((res (my/org-archive-logbook-at-point days arch-file)))
+          (setq total-archived (car res))
+          (setq total-kept (cdr res))))
+      (when (> total-archived 0)
+        (with-current-buffer (find-file-noselect arch-file)
+          (save-buffer)))
+      (message "Archived %d entries older than %d days to %s (kept %d entries)."
+               total-archived days (file-name-nondirectory arch-file) total-kept)))
   )
+
 
 ;;; Redirect Custom writes to separate file
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
